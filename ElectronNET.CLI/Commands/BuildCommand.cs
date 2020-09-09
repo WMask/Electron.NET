@@ -42,6 +42,7 @@ namespace ElectronNET.CLI.Commands
         private string _paramForceNodeInstall = "install-modules";
         private string _manifest = "manifest";
         private string _paramPublishReadyToRun = "PublishReadyToRun";
+        private string _paramPauseAfterPublish = "publish-pause";
 
         public Task<bool> ExecuteAsync()
         {
@@ -105,12 +106,22 @@ namespace ElectronNET.CLI.Commands
                     publishReadyToRun += "true";
                 }
 
-                var resultCode = ProcessHelper.CmdExecute($"dotnet publish -r {platformInfo.NetCorePublishRid} -c \"{configuration}\" --output \"{tempBinPath}\" {publishReadyToRun} --self-contained", Directory.GetCurrentDirectory());
+                string publishCommand = $"dotnet publish -r {platformInfo.NetCorePublishRid} -c \"{configuration}\" --output \"{tempBinPath}\" {publishReadyToRun} --self-contained";
+
+                Console.WriteLine($"Executing dotnet publish {Environment.NewLine}command: {publishCommand}{Environment.NewLine}in: {Directory.GetCurrentDirectory()}");
+                var resultCode = ProcessHelper.CmdExecute(publishCommand, Directory.GetCurrentDirectory());
 
                 if (resultCode != 0)
                 {
                     Console.WriteLine("Error occurred during dotnet publish: " + resultCode);
                     return false;
+                }
+
+                if (parser.Arguments.ContainsKey(_paramPauseAfterPublish))
+                {
+                    Console.WriteLine("Paused. dotnet publish successful. Hit any key to continue...");
+                    Console.ReadKey(true);
+                    Console.WriteLine("Continue build...");
                 }
 
                 DeployEmbeddedElectronFiles.Do(tempPath);
